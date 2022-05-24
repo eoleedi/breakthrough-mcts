@@ -1,8 +1,6 @@
 from abc import abstractmethod, ABC
 import math
 
-UCB_PARAM = 3
-
 
 class MCTS:
 
@@ -49,8 +47,10 @@ class MCTS:
 
     def simulate(self, node):
         invert_reward = True
+        cnt = 5
         while True:
-            if node.is_terminal():
+            cnt -= 1
+            if node.is_terminal() or cnt < 0:
                 reward = node.find_reward()
                 return 1 - reward if invert_reward else reward
             node = node.find_random_child()
@@ -70,7 +70,7 @@ class MCTS:
                 if child.visit == 0:
                     continue
                 ucb1 = child.reward / child.visit + \
-                    math.sqrt(UCB_PARAM * math.log(node.visit)/child.visit)
+                    math.sqrt(2 * math.log(node.visit)/child.visit)
                 if ucb1 > maxScore:
                     maxScore = ucb1
                     bestChild = child

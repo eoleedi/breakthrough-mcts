@@ -37,18 +37,35 @@ class BreakThrough(Node):
         return self.make_move(move)
 
     def find_reward(self):
-        if not self.terminal:
-            raise RuntimeError(
-                f"reward called on nonterminal board {self.board}")
-        if self.winner is self.turn:
-            # It's your turn and you've already won. Should be impossible.
-            raise RuntimeError(
-                f"reward called on unreachable board {self.board}")
-        if self.turn is (self.winner * -1):
-            return 0  # Your opponent has just won. Bad.
+        """Optimized reward for breakthrough game(not stable)"""
+        # TODO find out a better way to calculate reward
+        if self.winner is not None and self.turn is (self.winner * -1):
+            return -5  # Your opponent has just won. Bad.
 
-        # The winner is neither True, False, nor None
-        raise RuntimeError(f"board has unknown winner type {self.winner}")
+        point = 0
+        for i in range(11, 89):
+            if self.board[i] == 1:
+                point += (8 - i // 10)
+            if self.board[i] == -1:
+                point -= (i // 10)
+        point /= 80
+        if self.turn == 1:
+            return point
+        else:
+            return 1-point
+        # """Old way of calculating reward"""
+        # if not self.terminal:
+        #     raise RuntimeError(
+        #         f"reward called on nonterminal board {self.board}")
+        # if self.winner is self.turn:
+        #     # It's your turn and you've already won. Should be impossible.
+        #     raise RuntimeError(
+        #         f"reward called on unreachable board {self.board}")
+        # if self.turn is (self.winner * -1):
+        #     return 0  # Your opponent has just won. Bad.
+
+        # # The winner is neither True, False, nor None
+        # raise RuntimeError(f"board has unknown winner type {self.winner}")
 
     def make_move(self, location):
         original_loc, new_loc = location
@@ -102,8 +119,7 @@ class BreakThrough(Node):
         return possible_moves
 
     def is_outbound(self, loc):
-        # loc <= 10 or loc >= 90 這幾個不用檢查因為不會走到
-        return loc % 10 == 0 or loc % 10 == 9
+        return loc % 10 == 0 or loc % 10 == 9 or loc <= 10 or loc >= 90
 
     def pretty_print(self):
         for i in range(10):
