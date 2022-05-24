@@ -1,7 +1,7 @@
 from queue import Queue
 from threading import Thread
 from datetime import timedelta
-from flask import Flask, request, render_template, send_from_directory, session
+from flask import Flask, request, render_template, session, Response
 from mcts import MCTS
 from breakthrough import BreakThrough, move_string_to_number, move_number_to_string, IllegalMoveError
 import time
@@ -29,7 +29,7 @@ def play_game(queue_in, queue_out):
 
     isFirst = True
     while True:
-        t = 300 if isFirst else 100
+        t = 700 if isFirst else 200
         isFirst = False
 
         for _ in range(t):
@@ -79,7 +79,7 @@ def play_game(queue_in, queue_out):
 
 
 app = Flask(__name__)
-app.config["DEBUG"] = True
+app.config["DEBUG"] = False
 app.config['SECRET_KEY'] = os.urandom(24)
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=31)
 processes = {}
@@ -88,22 +88,8 @@ queues_in = {}
 queues_out = {}
 
 
-def cleanup(uid):
-    if uid not in processes:
-        return None
-
-    del queues_in[uid]
-    del queues_out[uid]
-    del processes[uid]
-    return True
-
-
 @app.route('/', methods=['GET'])
 def home():
-    # if session.get('uid') is None:
-    #     session['uid'] = uuid.uuid4()
-    # else:
-    #     cleanup(session['uid'])
     session['uid'] = uuid.uuid4()
     return render_template('game.html')
 
@@ -112,6 +98,10 @@ def home():
 def play():
     uid = session.get('uid')
     move = request.form['move']
+    if len(move) != 4:
+        return Response("Error: Invalid move", status=400)
+    if 'a' > move[0] or move[0] > 'h' or 'a' > move[2] or move[2] > 'h' or move[1] > '8' or move[1] < '1' or move[3] > '8' or move[3] < '1':
+        return Response("Error: Invalid move", status=400)
 
     if not uid:
         json_data = json.dumps({
@@ -146,33 +136,6 @@ def play():
         del processes[uid]
 
     return json_data
-
-
-# @app.route('/api/board', methods=['GET'])
-# def get_board():
-#     uid = session.get('uid')
-#     if uid not in boards.keys():
-#         boards[uid] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#                        0, -1, -1, -1, -1, -1, -1, -1, -1, 0,
-#                        0, -1, -1, -1, -1, -1, -1, -1, -1, 0,
-#                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#                        0, 1, 1, 1, 1, 1, 1, 1, 1, 0,
-#                        0, 1, 1, 1, 1, 1, 1, 1, 1, 0,
-#                        0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-#                        ]
-
-#     return json.dumps({
-#         "data": boards[uid]
-#     }
-#     )
-
-
-@app.route('/static/<path:path>')
-def send_static(path):
-    return send_from_directory('static', path)
 
 
 app.run(host='0.0.0.0', port=5001)
